@@ -265,11 +265,6 @@
     <div class="spacer"></div>
     <button class="btn btn-gold" id="downloadJpgBtn">📷 Download JPG</button>
     <button class="btn btn-outline" id="exportCsvBtn">Export CSV</button>
-    <button class="btn btn-outline" id="saveJsonBtn">💾 Save (Backup)</button>
-    <label class="btn btn-outline" style="cursor:pointer;">
-      📂 Open
-      <input type="file" id="loadJsonInput" accept="application/json" style="display:none;">
-    </label>
   </div>
 
   <div class="add-row">
@@ -477,39 +472,6 @@ document.getElementById('exportCsvBtn').addEventListener('click', () => {
   link.click();
 });
 
-// ---- JSON backup (since data is not saved automatically) ----
-document.getElementById('saveJsonBtn').addEventListener('click', () => {
-  const payload = {
-    companyName: companyNameInput.value,
-    date: dateInput.value,
-    items
-  };
-  const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
-  const link = document.createElement('a');
-  link.href = URL.createObjectURL(blob);
-  link.download = `price-list-backup-${dateInput.value || todayStr()}.json`;
-  link.click();
-});
-
-document.getElementById('loadJsonInput').addEventListener('change', (e) => {
-  const file = e.target.files[0];
-  if(!file) return;
-  const reader = new FileReader();
-  reader.onload = (ev) => {
-    try{
-      const data = JSON.parse(ev.target.result);
-      if(data.companyName) companyNameInput.value = data.companyName;
-      if(data.date) dateInput.value = data.date;
-      if(Array.isArray(data.items)) items = data.items;
-      render();
-    }catch(err){
-      alert('கோப்பை படிக்க முடியவில்லை');
-    }
-  };
-  reader.readAsText(file);
-  e.target.value = '';
-});
-
 // ---- Item name list from Google Sheet (published as CSV) ----
 // Paste your published Google Sheet CSV link below (between the quotes).
 // How to get it: open your Sheet -> File -> Share -> Publish to web ->
@@ -526,12 +488,15 @@ function queuePriceSync(itemName, price){
   if(!APPS_SCRIPT_URL || !itemName) return;
   clearTimeout(priceSyncTimers[itemName]);
   priceSyncTimers[itemName] = setTimeout(() => {
+    console.log('Syncing price to sheet:', itemName, price);
     fetch(APPS_SCRIPT_URL, {
       method: 'POST',
-      mode: 'no-cors',
       headers: { 'Content-Type': 'text/plain' },
       body: JSON.stringify({ item: itemName, price: price })
-    }).catch(err => console.error('Price sync failed:', err));
+    })
+      .then(res => res.text())
+      .then(text => console.log('Sheet sync response:', text))
+      .catch(err => console.error('Price sync failed:', err));
   }, 800); // wait until typing pauses before sending
 }
 
