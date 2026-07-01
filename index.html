@@ -280,6 +280,7 @@
     </div>
     <button class="btn btn-primary" id="addItemBtn">+ Add Item</button>
     <div class="spacer"></div>
+    <button class="btn btn-primary" id="saveSheetBtn">💾 Save</button>
     <button class="btn btn-danger" id="clearAllBtn">Clear All</button>
   </div>
 
@@ -406,9 +407,6 @@ manageBody.addEventListener('input', (e) => {
   // update poster live without full rerender jank
   posterBody.children[idx].querySelector(field==='item' ? '.item' : '.price').textContent =
     field === 'item' ? e.target.value : formatPrice(e.target.value);
-  if(field === 'price'){
-    queuePriceSync(items[idx].item, items[idx].price);
-  }
 });
 
 manageBody.addEventListener('click', (e) => {
@@ -483,22 +481,44 @@ const GOOGLE_SHEET_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQ
 // See the setup instructions provided separately for the exact script to deploy.
 const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzPObtlXSqgndgREsq2pz-TjqNlEqMdWC4KQzUai4BfoUOUrQl__TvxRh_6-IOnfm2A/exec";
 
-let priceSyncTimers = {};
-function queuePriceSync(itemName, price){
-  if(!APPS_SCRIPT_URL || !itemName) return;
-  clearTimeout(priceSyncTimers[itemName]);
-  priceSyncTimers[itemName] = setTimeout(() => {
-    console.log('Syncing price to sheet:', itemName, price);
-    fetch(APPS_SCRIPT_URL, {
+const saveSheetBtn = document.getElementById('saveSheetBtn');
+
+async function saveAllPricesToSheet(){
+  if(!APPS_SCRIPT_URL){
+    alert('Google Sheet link is not set up in the code yet.');
+    return;
+  }
+  if(items.length === 0){
+    alert('No items to save.');
+    return;
+  }
+  const originalLabel = saveSheetBtn.textContent;
+  saveSheetBtn.textContent = 'Saving...';
+  saveSheetBtn.disabled = true;
+  try{
+    const res = await fetch(APPS_SCRIPT_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'text/plain' },
-      body: JSON.stringify({ item: itemName, price: price })
-    })
-      .then(res => res.text())
-      .then(text => console.log('Sheet sync response:', text))
-      .catch(err => console.error('Price sync failed:', err));
-  }, 800); // wait until typing pauses before sending
+      body: JSON.stringify({ items: items.map(r => ({ item: r.item, price: r.price })) })
+    });
+    const result = await res.json().catch(() => null);
+    saveSheetBtn.textContent = originalLabel;
+    saveSheetBtn.disabled = false;
+    if(result && result.status === 'ok'){
+      alert(`Saved ✓ (${result.updated || items.length} item(s) updated in Google Sheet)`);
+    }else{
+      alert('Sheet responded, but something looked off. Check the browser console for details.');
+      console.log('Sheet response:', result);
+    }
+  }catch(err){
+    saveSheetBtn.textContent = originalLabel;
+    saveSheetBtn.disabled = false;
+    alert('Could not reach Google Sheet. Check your internet connection or the Apps Script link.');
+    console.error('Save to sheet failed:', err);
+  }
 }
+
+saveSheetBtn.addEventListener('click', saveAllPricesToSheet);
 
 const newItemSelect = document.getElementById('newItem');
 
