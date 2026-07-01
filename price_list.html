@@ -514,12 +514,12 @@ document.getElementById('loadJsonInput').addEventListener('change', (e) => {
 // Paste your published Google Sheet CSV link below (between the quotes).
 // How to get it: open your Sheet -> File -> Share -> Publish to web ->
 // choose the sheet/tab -> format "Comma-separated values (.csv)" -> Publish -> copy link.
-const GOOGLE_SHEET_CSV_URL = "";
+const GOOGLE_SHEET_CSV_URL = "https://script.google.com/macros/s/AKfycbzPObtlXSqgndgREsq2pz-TjqNlEqMdWC4KQzUai4BfoUOUrQl__TvxRh_6-IOnfm2A/exec";
 
 // Paste your Apps Script Web App URL below to allow price updates to sync
 // back into the same sheet (updates existing row only, never adds a new one).
 // See the setup instructions provided separately for the exact script to deploy.
-const APPS_SCRIPT_URL = "";
+const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzPObtlXSqgndgREsq2pz-TjqNlEqMdWC4KQzUai4BfoUOUrQl__TvxRh_6-IOnfm2A/exec";
 
 let priceSyncTimers = {};
 function queuePriceSync(itemName, price){
